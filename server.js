@@ -7,6 +7,8 @@ const db = require('./database');
 
 const app = express();
 
+// Konfigurasi Views & Static File untuk Railway (Linux)
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -66,7 +68,7 @@ app.get('/logout', (req, res) => {
 // ------------------- DASHBOARD / BERANDA -------------------
 app.get('/dashboard', checkAuth, (req, res) => {
   const today = new Date().toISOString().split('T')[0];
-  const filter = req.query.filter || ''; // Filter: 'today', 'to_finish', atau 'late'
+  const filter = req.query.filter || '';
   const searchInvoice = req.query.search_invoice || '';
 
   const qTodayCount = "SELECT COUNT(*) as total FROM transactions WHERE DATE(date_entry) = ?";
@@ -74,7 +76,6 @@ app.get('/dashboard', checkAuth, (req, res) => {
   const qLateCount = "SELECT COUNT(*) as total FROM transactions WHERE DATE(date_finish) < ? AND status NOT IN ('Selesai', 'Diambil')";
   const qOmsetToday = "SELECT SUM(total_amount) as total FROM transactions WHERE DATE(date_entry) = ? AND payment_status = 'Lunas'";
   
-  // Query List berdasarkan Filter Kartu / Pencarian
   let qList = "SELECT t.*, c.name as customer_name, c.phone FROM transactions t JOIN customers c ON t.customer_id = c.id WHERE 1=0";
   let params = [];
 
@@ -189,7 +190,7 @@ app.post('/pos', checkAuth, (req, res) => {
   });
 });
 
-// Halaman Nota & WhatsApp Gateway Link
+// Halaman Nota
 app.get('/nota/:id', checkAuth, (req, res) => {
   const query = `
     SELECT t.*, c.name as customer_name, c.phone, p.name as parfum_name, u.name as pegawai_name
@@ -234,7 +235,7 @@ app.get('/master', checkAuth, (req, res) => {
       db.all("SELECT * FROM services", (err, services) => {
         db.all("SELECT id, username, name, role FROM users", (err, users) => {
           const qTransactions = `
-            SELECT t.*, c.name as customer_name, t.status as process_status 
+            SELECT t.*, c.name as customer_name 
             FROM transactions t 
             LEFT JOIN customers c ON t.customer_id = c.id 
             ORDER BY t.id DESC
@@ -264,7 +265,6 @@ app.post('/master/parfum/add', checkAuth, (req, res) => {
   }
 });
 
-// Tambah Layanan (Owner Only) - Menerima Input Jam/Hari
 app.post('/master/service/add', checkAuth, checkOwner, (req, res) => {
   const { category, name, duration_value, duration_unit, price } = req.body;
   const type_duration = `${duration_value} ${duration_unit}`;
@@ -277,17 +277,6 @@ app.post('/master/user/add', checkAuth, checkOwner, async (req, res) => {
   const hash = await bcrypt.hash(password, 10);
   db.run("INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)", 
     [username, hash, name, role], () => res.redirect('/master'));
-});
-
-app.post('/master/transaction/edit/:id', checkAuth, (req, res) => {
-  const { id } = req.params;
-  const { payment_status, process_status } = req.body;
-
-  db.run(
-    "UPDATE transactions SET payment_status = ?, status = ? WHERE id = ?",
-    [payment_status, process_status, id],
-    () => res.redirect('/master')
-  );
 });
 
 app.get('/master/delete/:table/:id', checkAuth, checkOwner, (req, res) => {
@@ -305,6 +294,49 @@ app.get('/master/delete/:table/:id', checkAuth, checkOwner, (req, res) => {
   } else {
     res.redirect('/master');
   }
+});
+
+// ------------------- FITUR EDIT & STATUS TRANSAKSI -------------------
+app.get('/transaksi/status/:id', checkAuth, (req, res) => {
+  const { id } = req.params;
+  const status = req.query.status || 'Lunas';
+  
+  db.run('UPDATE transactions SET payment_status = ? WHERE id = ?', [status, id], (err) => {
+    res.redirect('/master');
+  });
+});
+
+app.get('/transaksi/delete/:id', checkAuth, (req, res) => {
+  const { id } = req.params;
+  db.run('DELETE FROM transaction_items WHERE transaction_id = ?', [id], () => {
+    db.run('DELETE FROM transactions WHERE id = ?', [id], () => res.redirect('/master'));
+  });
+});
+
+app.get('/transaksi/edit/:id', checkAuth, (req, res) => {
+  const { id } = req.params;
+  db.get('SELECT * FROM transactions WHERE id = ?', [id], (err, transaction) => {
+    if (err || !transaction) {
+      return res.status(404).send('Transaksi tidak ditemukan');
+    }
+    db.all('SELECT * FROM transaction_items WHERE transaction_id = ?', [id], (err, items) => {
+      res.render('edit-transaksi', { transaction, items, currentUser: req.session.user });
+    });
+  });
+});
+
+app.post('/transaksi/edit/:id', checkAuth, (req, res) => {
+  const { id } = req.params;
+  const { payment_status, status } = req.body;
+  
+  db.run(
+    'UPDATE transactions SET payment_status = ?, status = ? WHERE id = ?',
+    [payment_status, status, id],
+    (err) => {
+      if (err) console.error(err);
+      res.redirect('/master');
+    }
+  );
 });
 
 // ------------------- LAPORAN KEUANGAN -------------------
@@ -339,18 +371,15 @@ app.get('/laporan', checkAuth, checkOwner, (req, res) => {
 // ------------------- ROUTE TRACKING PUBLIK -------------------
 app.get('/track', (req, res) => {
   const notaNo = req.query.nota;
-  if (!notaNo) {
-    return res.render('track');
-  }
+  if (!notaNo) return res.render('track');
 
   db.get("SELECT * FROM transactions WHERE invoice_no = ?", [notaNo], (err, order) => {
     res.render('track', { order: order, notaNo: notaNo });
   });
 });
-// ------------------- API CEK STATUS PUBLIK -------------------
+
 app.get('/api/check-status/:notaNum', (req, res) => {
   const { notaNum } = req.params;
-
   const query = `
     SELECT t.invoice_no, t.date_finish, t.payment_status, t.status, c.name as customer_name
     FROM transactions t
@@ -359,9 +388,7 @@ app.get('/api/check-status/:notaNum', (req, res) => {
   `;
 
   db.get(query, [notaNum], (err, trans) => {
-    if (err || !trans) {
-      return res.status(404).json({ message: 'Nota tidak ditemukan' });
-    }
+    if (err || !trans) return res.status(404).json({ message: 'Nota tidak ditemukan' });
 
     res.json({
       nota_number: trans.invoice_no,
@@ -372,78 +399,21 @@ app.get('/api/check-status/:notaNum', (req, res) => {
     });
   });
 });
+
 // ------------------- UPDATE USER / PEGAWAI -------------------
 app.post('/master/user/edit/:id', checkAuth, (req, res) => {
-  if (req.session.user.role !== 'owner') {
-    return res.status(403).send('Akses Ditolak');
-  }
+  if (req.session.user.role !== 'owner') return res.status(403).send('Akses Ditolak');
 
   const { id } = req.params;
   const { name, username, password, role } = req.body;
 
-  const query = "UPDATE users SET name = ?, username = ?, password = ?, role = ? WHERE id = ?";
-  db.run(query, [name, username, password, role, id], (err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send('Gagal mengupdate user');
-    }
-    res.redirect('/master');
-  });
-});
-// Route untuk mengubah status pembayaran jadi LUNAS
-app.get('/transaksi/status/:id', (req, res) => {
-  const { id } = req.params;
-  const status = req.query.status || 'Lunas';
-  
-  db.run('UPDATE transactions SET payment_status = ? WHERE id = ?', [status, id], (err) => {
-    if (err) console.error(err);
-    res.redirect('/master');
-  });
-});
-
-// Route untuk menghapus nota transaksi
-app.get('/transaksi/delete/:id', (req, res) => {
-  const { id } = req.params;
-  
-  db.run('DELETE FROM transactions WHERE id = ?', [id], (err) => {
-    if (err) console.error(err);
-    res.redirect('/master');
-  });
-});
-// Route untuk mengambil data transaksi yang akan diedit
-app.get('/transaksi/edit/:id', (req, res) => {
-  const { id } = req.params;
-  
-  // Ambil data transaksi dari database
-  db.get('SELECT * FROM transactions WHERE id = ?', [id], (err, transaction) => {
-    if (err || !transaction) {
-      return res.status(404).send('Transaksi tidak ditemukan');
-    }
-    
-    // Ambil detail item dari transaksi tersebut
-    db.all('SELECT * FROM transaction_items WHERE transaction_id = ?', [id], (err, items) => {
-      res.render('edit-transaksi', { transaction, items, currentUser: req.session.user });
-    });
-  });
-});
-
-// Route untuk menyimpan hasil perubahan (POST)
-app.post('/transaksi/edit/:id', (req, res) => {
-  const { id } = req.params;
-  const { payment_status, status } = req.body;
-  
-  db.run(
-    'UPDATE transactions SET payment_status = ?, status = ? WHERE id = ?',
-    [payment_status, status, id],
-    (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('Gagal mengupdate transaksi');
-      }
+  db.run("UPDATE users SET name = ?, username = ?, password = ?, role = ? WHERE id = ?", 
+    [name, username, password, role, id], (err) => {
       res.redirect('/master');
     }
   );
 });
+
 // ------------------- JALANKAN SERVER -------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
