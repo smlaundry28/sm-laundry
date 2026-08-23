@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nota Transaksi - <%= trans.invoice_no %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @media print {
+      body { background-color: white; }
+      .no-print { display: none !important; }
+      .print-shadow-none { box-shadow: none !important; border: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
+
+  <!-- Aksi Header -->
+  <div class="no-print max-w-md w-full mb-4 flex justify-between items-center">
+    <a href="/pos" class="text-slate-600 hover:text-slate-900 font-medium text-sm flex items-center gap-2">
+      <i class="fa-solid fa-arrow-left"></i> Kembali ke Kasir
+    </a>
+    <div class="flex gap-2">
+      <a href="<%= waUrl %>" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition">
+        <i class="fa-brands fa-whatsapp text-base"></i> Kirim WA
+      </a>
+      <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-2 rounded-lg font-semibold flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-print"></i> Cetak Struk
+      </button>
+    </div>
+  </div>
+
+  <!-- Kartu Struk Nota -->
+  <div class="bg-white max-w-md w-full p-6 rounded-2xl shadow-lg border border-slate-200 print-shadow-none font-sans space-y-4">
+    
+    <!-- Toko Header -->
+    <div class="text-center pb-4 border-b border-dashed border-slate-300">
+      <h1 class="text-2xl font-black text-indigo-900 tracking-wider">SM LAUNDRY</h1>
+      <p class="text-xs text-slate-500 mt-1">Jl. Maritim 28 Socah Bangkalan</p>
+      <p class="text-xs text-slate-500">WA: 085257357246</p>
+    </div>
+
+    <!-- Info Pelanggan -->
+    <div class="text-xs space-y-1.5 text-slate-600 border-b border-dashed border-slate-300 pb-3">
+      <div class="flex justify-between font-semibold text-slate-800">
+        <span>No. Nota:</span>
+        <span class="text-indigo-600"><%= trans.invoice_no %></span>
+      </div>
+      <div class="flex justify-between">
+        <span>Pelanggan:</span>
+        <span class="font-medium text-slate-800"><%= trans.customer_name %> (<%= trans.phone %>)</span>
+      </div>
+      <div class="flex justify-between">
+        <span>Tgl Masuk:</span>
+        <span><%= trans.date_entry %></span>
+      </div>
+      <div class="flex justify-between">
+        <span>Tgl Selesai:</span>
+        <span><%= trans.date_finish %></span>
+      </div>
+      <div class="flex justify-between">
+        <span>Aroma Parfum:</span>
+        <span class="font-medium text-slate-800"><%= trans.parfum_name || '-' %></span>
+      </div>
+    </div>
+
+    <!-- Daftar Item/Layanan -->
+    <div class="space-y-2 border-b border-dashed border-slate-300 pb-4">
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Detail Layanan</div>
+      <% items.forEach(item => { %>
+        <div class="flex justify-between items-start text-sm">
+          <div>
+            <div class="font-semibold text-slate-800"><%= item.service_name %></div>
+            <div class="text-xs text-slate-500"><%= item.qty %> Kg/Pcs x Rp <%= item.price.toLocaleString('id-ID') %></div>
+          </div>
+          <div class="font-semibold text-slate-800">
+            Rp <%= item.subtotal.toLocaleString('id-ID') %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+
+    <!-- Total Bayar -->
+    <div class="space-y-1.5 text-xs text-slate-600 border-b border-dashed border-slate-300 pb-3">
+      <div class="flex justify-between text-base font-bold text-slate-900 pt-1">
+        <span>Total Bayar</span>
+        <span class="text-indigo-600">Rp <%= trans.total_amount.toLocaleString('id-ID') %></span>
+      </div>
+      <div class="flex justify-between items-center pt-1">
+        <span>Status Pembayaran:</span>
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold <%= trans.payment_status === 'Lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' %>">
+          <%= trans.payment_status.toUpperCase() %>
+        </span>
+      </div>
+    </div>
+
+    <!-- Catatan & Syarat Ketentuan -->
+    <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
+      <div class="font-bold text-slate-800 flex items-center gap-1">
+        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Syarat & Ketentuan:
+      </div>
+      <ul class="list-disc list-inside space-y-0.5 pl-1 text-slate-500">
+        <li>Komplain maksimal <strong>1x24 jam</strong> setelah nota/pakaian diambil.</li>
+        <li>Mohon maaf, kami <strong>tidak menerima</strong> pakaian dalam / CD.</li>
+        <li>Kerusakan/kelunturan karena sifat bahan di luar tanggung jawab kami.</li>
+      </ul>
+    </div>
+
+    <div class="text-center text-xs text-slate-400 pt-1">
+      <p class="font-medium text-slate-500">Terima Kasih Atas Kepercayaan Anda!</p>
+    </div>
+
+  </div>
+
+</body>
+</html>

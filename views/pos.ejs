@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS Kasir - SM Laundry</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+  <!-- Navbar -->
+  <nav class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-shirt text-2xl"></i>
+        <span class="font-bold text-xl tracking-tight">SM Laundry POS</span>
+      </div>
+      <div class="flex items-center space-x-4 text-sm font-medium">
+        <a href="/dashboard" class="hover:text-indigo-200 transition"><i class="fa-solid fa-chart-line mr-1"></i> Beranda</a>
+        <a href="/master" class="hover:text-indigo-200 transition"><i class="fa-solid fa-database mr-1"></i> Master Data</a>
+        <a href="/logout" class="bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-right-from-bracket"></i></a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <form action="/pos" method="POST" id="posForm" onsubmit="return validateForm()">
+      <input type="hidden" name="items" id="itemsInput">
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- KOLOM KIRI: Katalog & Draf Layanan (7 Cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- Katalog Pilih Layanan -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-base font-bold text-slate-800 mb-3 flex items-center justify-between">
+              <span><i class="fa-solid fa-list-check text-indigo-600 mr-2"></i> Pilih Layanan</span>
+              <span class="text-xs font-normal text-slate-500">Klik item untuk menambahkan</span>
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+              <% services.forEach(s => { %>
+                <div onclick="clickService(this)" 
+                     data-id="<%= s.id %>"
+                     data-name="<%= s.name %>"
+                     data-price="<%= s.price %>"
+                     data-duration="<%= s.type_duration %>"
+                     class="p-3 border rounded-xl hover:border-indigo-500 hover:bg-indigo-50/50 cursor-pointer transition flex justify-between items-center bg-slate-50/50">
+                  <div>
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded"><%= s.category %></span>
+                    <div class="font-semibold text-sm text-slate-800 mt-1"><%= s.name %></div>
+                    <div class="text-xs text-slate-500"><i class="fa-regular fa-clock mr-1"></i><%= s.type_duration %></div>
+                  </div>
+                  <div class="text-right">
+                    <div class="font-bold text-indigo-600 text-sm">Rp <%= s.price.toLocaleString('id-ID') %></div>
+                    <span class="text-[11px] text-indigo-500 font-medium">+ Tambah</span>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+
+          <!-- Rincian Layanan Dipilih (Keranjang) -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 w-full">
+            <h2 class="text-base font-bold text-slate-800 mb-3 flex items-center">
+              <i class="fa-solid fa-basket-shopping text-emerald-600 mr-2"></i> Layanan Dalam Nota
+            </h2>
+
+            <div class="overflow-x-auto w-full">
+              <table class="w-full text-xs text-left">
+                <thead class="uppercase bg-slate-100 text-slate-500">
+                  <tr>
+                    <th class="p-2.5">Layanan</th>
+                    <th class="p-2.5 w-24">Qty/Berat</th>
+                    <th class="p-2.5">Harga</th>
+                    <th class="p-2.5">Subtotal</th>
+                    <th class="p-2.5 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="selectedServicesTable" class="divide-y divide-slate-100">
+                  <tr id="emptyRow">
+                    <td colspan="5" class="p-4 text-center text-slate-400">Belum ada layanan dipilih. Silakan klik pilihan di atas.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- KOLOM KANAN: Data Pelanggan & Pembayaran (5 Cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <h2 class="text-base font-bold text-slate-800 border-b pb-2">
+              <i class="fa-solid fa-user-tag text-amber-500 mr-2"></i> Pelanggan & Transaksi
+            </h2>
+
+            <!-- PILIH PELANGGAN LAMA -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Pelanggan Lama (Opsional)</label>
+              <select id="selectCustomer" onchange="autoFillCustomer()" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="">-- Pelanggan Baru --</option>
+                <% customers.forEach(c => { %>
+                  <option value="<%= c.name %>" data-phone="<%= c.phone %>"><%= c.name %> (<%= c.phone %>)</option>
+                <% }) %>
+              </select>
+            </div>
+
+            <!-- DATA INPUT PELANGGAN -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Pelanggan</label>
+              <input type="text" id="customer_name" name="customer_name" required placeholder="Nama Lengkap" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">No. WhatsApp</label>
+              <input type="text" id="phone" name="phone" required placeholder="08123456789" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Parfum</label>
+                <select name="parfum_id" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <% parfums.forEach(p => { %>
+                    <option value="<%= p.id %>"><%= p.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Tgl Selesai</label>
+                <input type="date" id="date_finish" name="date_finish" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+              </div>
+            </div>
+
+            <!-- Metode Pembayaran -->
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Metode Bayar</label>
+                <select name="payment_method" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <option value="Tunai">Tunai</option>
+                  <option value="QRIS/Transfer">QRIS / Transfer</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Status Bayar</label>
+                <select name="payment_status" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <option value="Lunas">Lunas</option>
+                  <option value="Belum Lunas">Belum Lunas</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Ringkasan Total -->
+            <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center mt-4">
+              <span class="font-bold text-slate-700">Total Pembayaran:</span>
+              <span class="text-xl font-black text-indigo-700" id="grandTotal">Rp 0</span>
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+              <i class="fa-solid fa-print"></i> Simpan & Cetak Nota
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+    </form>
+  </div>
+
+  <script>
+    let cart = [];
+
+    // Tentukan Tanggal Hari Ini Sebagai Default Tanggal Selesai
+    document.getElementById('date_finish').value = new Date().toISOString().split('T')[0];
+
+    function autoFillCustomer() {
+      const select = document.getElementById('selectCustomer');
+      const selectedOption = select.options[select.selectedIndex];
+      
+      if (select.value === "") {
+        document.getElementById('customer_name').value = "";
+        document.getElementById('phone').value = "";
+      } else {
+        document.getElementById('customer_name').value = select.value;
+        document.getElementById('phone').value = selectedOption.getAttribute('data-phone');
+      }
+    }
+
+    function addService(id, name, price, durationStr) {
+      const existing = cart.find(item => item.id === id);
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ id, name, price, qty: 1 });
+      }
+
+      calculateFinishDate(durationStr);
+      renderCart();
+    }
+
+    function calculateFinishDate(durationStr) {
+      if (!durationStr) return;
+      
+      const today = new Date();
+      let daysToAdd = 1;
+
+      if (durationStr.toLowerCase().includes('hari')) {
+        const val = parseInt(durationStr);
+        if (!isNaN(val)) daysToAdd = val;
+      } else if (durationStr.toLowerCase().includes('jam')) {
+        const hours = parseInt(durationStr);
+        if (!isNaN(hours)) {
+          daysToAdd = Math.ceil(hours / 24);
+        }
+      }
+
+      today.setDate(today.getDate() + daysToAdd);
+      document.getElementById('date_finish').value = today.toISOString().split('T')[0];
+    }
+
+    function updateQty(id, qty) {
+      const item = cart.find(i => i.id === id);
+      if (item) {
+        item.qty = parseFloat(qty) || 0;
+        renderCart();
+      }
+    }
+
+    function removeItem(id) {
+      cart = cart.filter(item => item.id !== id);
+      renderCart();
+    }
+
+    function renderCart() {
+      const tbody = document.getElementById('selectedServicesTable');
+      let grandTotal = 0;
+
+      if (cart.length === 0) {
+        tbody.innerHTML = `<tr id="emptyRow"><td colspan="5" class="p-4 text-center text-slate-400">Belum ada layanan dipilih. Silakan klik pilihan di atas.</td></tr>`;
+        document.getElementById('grandTotal').innerText = 'Rp 0';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      cart.forEach(item => {
+        const subtotal = item.qty * item.price;
+        grandTotal += subtotal;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50">
+            <td class="p-2.5 font-semibold text-slate-800">${item.name}</td>
+            <td class="p-2.5">
+              <input type="number" step="0.1" min="0.1" value="${item.qty}" 
+                     onchange="updateQty('${item.id}', this.value)" 
+                     class="w-20 px-2 py-1 border rounded text-xs text-center focus:ring-1 focus:ring-indigo-500">
+            </td>
+            <td class="p-2.5">Rp ${item.price.toLocaleString('id-ID')}</td>
+            <td class="p-2.5 font-bold text-slate-800">Rp ${subtotal.toLocaleString('id-ID')}</td>
+            <td class="p-2.5 text-center">
+              <button type="button" onclick="removeItem('${item.id}')" class="text-red-500 hover:text-red-700">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('grandTotal').innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
+    }
+
+    function validateForm() {
+      if (cart.length === 0) {
+        alert("Pilih minimal satu layanan sebelum menyimpan nota!");
+        return false;
+      }
+      document.getElementById('itemsInput').value = JSON.stringify(cart);
+      return true;
+    }
+
+    function clickService(el) {
+      const id = el.getAttribute('data-id');
+      const name = el.getAttribute('data-name');
+      const price = parseFloat(el.getAttribute('data-price'));
+      const duration = el.getAttribute('data-duration');
+
+      addService(id, name, price, duration);
+    }
+  </script>
+</body>
+</html>

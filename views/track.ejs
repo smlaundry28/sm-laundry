@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tracking Status - SM Laundry</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col justify-between">
+
+  <!-- Navbar -->
+  <header class="bg-white border-b border-slate-100 shadow-sm sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold text-sm">
+          <i class="fa-solid fa-shirt"></i>
+        </div>
+        <span class="font-bold text-slate-900 tracking-tight">SM Laundry</span>
+      </a>
+      <a href="/" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition"><i class="fa-solid fa-arrow-left mr-1"></i> Kembali</a>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto w-full px-4 py-8 flex-grow space-y-6">
+    
+    <!-- Box Pencarian Status -->
+    <div class="bg-white p-6 rounded-2xl shadow-xl shadow-indigo-100/50 border border-slate-100">
+      <h1 class="text-xl font-bold text-slate-900 mb-1">Cek Status Laundry</h1>
+      <p class="text-xs text-slate-500 mb-4">Pantau proses pencucian dan dokumentasi foto baju Anda.</p>
+      
+      <form action="/track" method="GET" class="flex gap-2">
+        <input type="text" name="nota" value="<%= typeof notaNo !== 'undefined' ? notaNo : '' %>" placeholder="Masukkan No. Nota (contoh: SML-1001)..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 uppercase font-semibold">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow-md shadow-indigo-200 transition">Cari</button>
+      </form>
+    </div>
+
+    <% if (typeof order !== 'undefined' && order) { %>
+      <!-- Detail Order & Status Progress -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+        
+        <!-- Header Nota -->
+        <div class="flex justify-between items-start border-b border-slate-100 pb-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">No Nota: <%= order.invoice_no %></span>
+            <h2 class="text-lg font-bold text-slate-800 mt-1"><%= order.customer_name %></h2>
+            <p class="text-xs text-slate-500">Masuk: <%= order.date_entry %></p>
+          </div>
+          <span class="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 text-xs font-bold rounded-full uppercase">
+            <%= order.status_payment || 'Belum Lunas' %>
+          </span>
+        </div>
+
+        <!-- Tracker Line Progress -->
+        <div>
+          <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-4">Progress Pengerjaan</h3>
+          <div class="grid grid-cols-4 gap-2 text-center relative">
+            
+            <div class="space-y-2">
+              <div class="w-10 h-10 mx-auto rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-indigo-200">
+                <i class="fa-solid fa-basket-shopping"></i>
+              </div>
+              <p class="text-[11px] font-bold text-indigo-600">Diterima</p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="w-10 h-10 mx-auto rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-indigo-200">
+                <i class="fa-solid fa-soap"></i>
+              </div>
+              <p class="text-[11px] font-bold text-indigo-600">Dicuci</p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="w-10 h-10 mx-auto rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm shadow-md shadow-indigo-200">
+                <i class="fa-solid fa-sun"></i>
+              </div>
+              <p class="text-[11px] font-bold text-indigo-600">Penjemuran</p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="w-10 h-10 mx-auto rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm shadow-md shadow-emerald-200">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <p class="text-[11px] font-bold text-emerald-600">Selesai</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section Checklist Kondisi Pakaian (QC Awal) -->
+        <div class="bg-amber-50/50 border border-amber-200/60 p-4 rounded-xl">
+          <h3 class="text-xs font-bold uppercase text-amber-800 tracking-wider mb-2 flex items-center">
+            <i class="fa-solid fa-clipboard-check mr-2 text-amber-600"></i> Checklist Pengecekan Kondisi Awal
+          </h3>
+          <ul class="text-xs space-y-1.5 text-amber-900">
+            <li class="flex items-center justify-between">
+              <span>Noda Bandel/Luntur:</span>
+              <span class="font-bold text-slate-700"><%= order.qc_noda ? 'Ada (Sudah Dicatat)' : 'Tidak Ada' %></span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span>Baju Sobek/Kancing Lepas:</span>
+              <span class="font-bold text-slate-700"><%= order.qc_sobek ? 'Ada (Sudah Dicatat)' : 'Tidak Ada' %></span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span>Catatan Khusus Staff:</span>
+              <span class="italic font-medium text-slate-600"><%= order.qc_catatan || 'Kondisi Pakaian Baik' %></span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Dokumentasi Foto Proses (Penjemuran & Selesai) -->
+        <div>
+          <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3">Dokumentasi Foto Proses</h3>
+          <div class="grid grid-cols-2 gap-4">
+            
+            <!-- Foto Jemur -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center">
+              <p class="text-[11px] font-semibold text-slate-600 mb-2">Saat Jemur/Proses</p>
+              <% if (order.foto_jemur) { %>
+                <img src="<%= order.foto_jemur %>" alt="Foto Jemur" class="w-full h-32 object-cover rounded-lg">
+              <% } else { %>
+                <div class="w-full h-32 bg-slate-200/60 rounded-lg flex items-center justify-center text-slate-400 text-xs">Belum Ada Foto</div>
+              <% } %>
+            </div>
+
+            <!-- Foto Selesai Packing -->
+            <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 text-center">
+              <p class="text-[11px] font-semibold text-slate-600 mb-2">Selesai & Packing</p>
+              <% if (order.foto_selesai) { %>
+                <img src="<%= order.foto_selesai %>" alt="Foto Selesai" class="w-full h-32 object-cover rounded-lg">
+              <% } else { %>
+                <div class="w-full h-32 bg-slate-200/60 rounded-lg flex items-center justify-center text-slate-400 text-xs">Belum Ada Foto</div>
+              <% } %>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    <% } else if (typeof notaNo !== 'undefined') { %>
+      <div class="bg-rose-50 border border-rose-100 p-4 rounded-xl text-center text-rose-600 text-xs font-semibold">
+        Nomor Nota "<%= notaNo %>" tidak ditemukan. Mohon periksa kembali nomor nota Anda.
+      </div>
+    <% } %>
+
+  </main>
+
+  <footer class="text-center py-4 text-xs text-slate-400 border-t border-slate-100 bg-white">
+    &copy; 2026 SM Laundry. Semua Bisa.
+  </footer>
+
+</body>
+</html>

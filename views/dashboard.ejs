@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - SM Laundry</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+  <!-- Navbar -->
+  <nav class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid fa-shirt text-2xl"></i>
+        <span class="font-bold text-xl tracking-tight">SM Laundry</span>
+      </div>
+      <div class="flex items-center space-x-6 text-sm font-medium">
+        <a href="/dashboard" class="text-white border-b-2 border-white pb-1"><i class="fa-solid fa-chart-line mr-1"></i> Beranda</a>
+        <a href="/pos" class="hover:text-indigo-200 transition"><i class="fa-solid fa-cash-register mr-1"></i> POS Kasir</a>
+        <a href="/master" class="hover:text-indigo-200 transition"><i class="fa-solid fa-database mr-1"></i> Master Data</a>
+        <% if(user.role === 'owner') { %>
+          <a href="/laporan" class="hover:text-indigo-200 transition"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Laporan</a>
+        <% } %>
+        <a href="/logout" class="bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Halo, <%= user.name %>! 👋</h1>
+        <p class="text-slate-500 text-sm">Berikut adalah ringkasan performa SM Laundry hari ini.</p>
+      </div>
+      <a href="/pos" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-plus"></i>
+        <span>Memulai Transaksi Baru</span>
+      </a>
+    </div>
+
+    <!-- Ringkasan Kartu Stat (4 Kolom) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <!-- 1. Transaksi Masuk -->
+      <a href="/dashboard?filter=today" class="block bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition group cursor-pointer <%= filter === 'today' ? 'ring-2 ring-indigo-500 bg-indigo-50/20' : '' %>">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 group-hover:text-indigo-600 transition">Masuk Hari Ini</p>
+            <p class="text-3xl font-extrabold text-slate-800 mt-1"><%= stats.todayCount %></p>
+          </div>
+          <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-lg group-hover:bg-indigo-600 group-hover:text-white transition">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+        </div>
+        <span class="text-xs text-indigo-600 font-medium mt-3 inline-block">Lihat detail &rarr;</span>
+      </a>
+
+      <!-- 2. Harus Selesai -->
+      <a href="/dashboard?filter=to_finish" class="block bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:border-amber-500 hover:shadow-md transition group cursor-pointer <%= filter === 'to_finish' ? 'ring-2 ring-amber-500 bg-amber-50/20' : '' %>">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 group-hover:text-amber-600 transition">Harus Selesai Hari Ini</p>
+            <p class="text-3xl font-extrabold text-amber-500 mt-1"><%= stats.toFinishCount %></p>
+          </div>
+          <div class="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center text-lg group-hover:bg-amber-500 group-hover:text-white transition">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+        </div>
+        <span class="text-xs text-amber-600 font-medium mt-3 inline-block">Lihat detail &rarr;</span>
+      </a>
+
+      <!-- 3. Transaksi Terlambat -->
+      <a href="/dashboard?filter=late" class="block bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:border-rose-500 hover:shadow-md transition group cursor-pointer <%= filter === 'late' ? 'ring-2 ring-rose-500 bg-rose-50/20' : '' %>">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 group-hover:text-rose-600 transition">Terlambat</p>
+            <p class="text-3xl font-extrabold text-rose-600 mt-1"><%= stats.lateCount %></p>
+          </div>
+          <div class="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center text-lg group-hover:bg-rose-600 group-hover:text-white transition">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+        </div>
+        <span class="text-xs text-rose-600 font-medium mt-3 inline-block">Lihat detail &rarr;</span>
+      </a>
+
+      <!-- 4. Total Omset -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Omset Hari Ini</p>
+          <p class="text-2xl font-extrabold text-emerald-600 mt-1">Rp <%= stats.todayOmset.toLocaleString('id-ID') %></p>
+        </div>
+        <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-lg">
+          <i class="fa-solid fa-wallet"></i>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Pencarian & Tabel Hasil -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <h2 class="text-lg font-semibold text-slate-800 flex items-center">
+          <i class="fa-solid fa-list-check text-indigo-600 mr-2"></i> 
+          <% if(filter === 'today') { %>
+            Daftar Transaksi Masuk Hari Ini
+          <% } else if(filter === 'to_finish') { %>
+            Daftar Transaksi Harus Selesai Hari Ini
+          <% } else if(filter === 'late') { %>
+            <span class="text-rose-600 font-bold">Daftar Transaksi Terlambat (Melewati Target)</span>
+          <% } else { %>
+            Cari Nota Transaksi
+          <% } %>
+        </h2>
+        <% if(filter) { %>
+          <a href="/dashboard" class="text-xs text-slate-500 hover:text-indigo-600 underline">Reset Filter</a>
+        <% } %>
+      </div>
+
+      <form action="/dashboard" method="GET" class="flex gap-3">
+        <input type="text" name="search_invoice" placeholder="Masukkan nomor nota (contoh: INV-123456)..." value="<%= searchInvoice %>" class="flex-1 px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-xl transition text-sm">Cari Nota</button>
+      </form>
+
+      <% if(listResults && listResults.length > 0) { %>
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-sm text-left text-slate-600">
+            <thead class="text-xs uppercase bg-slate-100 text-slate-500">
+              <tr>
+                <th class="px-4 py-3">No. Nota</th>
+                <th class="px-4 py-3">Pelanggan</th>
+                <th class="px-4 py-3">No WA</th>
+                <th class="px-4 py-3">Tgl Selesai</th>
+                <th class="px-4 py-3">Total</th>
+                <th class="px-4 py-3">Status Pengerjaan</th>
+                <th class="px-4 py-3">Pembayaran</th>
+                <th class="px-4 py-3 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <% listResults.forEach(r => { %>
+                <tr class="hover:bg-slate-50">
+                  <td class="px-4 py-3 font-semibold text-slate-800"><%= r.invoice_no %></td>
+                  <td class="px-4 py-3"><%= r.customer_name %></td>
+                  <td class="px-4 py-3"><%= r.phone %></td>
+                  <td class="px-4 py-3 font-medium <%= filter === 'late' ? 'text-rose-600 font-bold' : '' %>"><%= r.date_finish %></td>
+                  <td class="px-4 py-3 font-medium text-emerald-600">Rp <%= r.total_amount.toLocaleString('id-ID') %></td>
+                  <td class="px-4 py-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold <%= r.status === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : (filter === 'late' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700') %>">
+                      <%= r.status %>
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold <%= r.payment_status === 'Lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700' %>">
+                      <%= r.payment_status %>
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <a href="/nota/<%= r.id %>" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-medium px-3 py-1.5 rounded-lg text-xs transition">Buka Nota</a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else if (filter || searchInvoice) { %>
+        <p class="mt-4 text-sm text-slate-500 font-medium text-center py-6">Tidak ada data transaksi yang ditemukan.</p>
+      <% } %>
+    </div>
+
+  </div>
+</body>
+</html>
