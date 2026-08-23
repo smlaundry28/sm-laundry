@@ -7,6 +7,13 @@ const db = require('./database');
 
 const app = express();
 
+// RESET SEMENTARA RAILWAY
+bcrypt.hash('admin123', 10, (err, hash) => {
+  if (!err) {
+    db.run("UPDATE users SET password = ? WHERE username = 'owner'", [hash]);
+  }
+});
+
 // Konfigurasi Views & Static File untuk Railway (Linux)
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
