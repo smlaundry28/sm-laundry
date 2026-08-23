@@ -10,6 +10,7 @@ const app = express();
 // Konfigurasi Views & Static File untuk Railway (Linux)
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+app.set('view cache', false); // 👈 TAMBAHKAN DI SINI
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
