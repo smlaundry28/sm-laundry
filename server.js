@@ -402,17 +402,33 @@ app.get('/api/check-status/:notaNum', (req, res) => {
 });
 
 // ------------------- UPDATE USER / PEGAWAI -------------------
-app.post('/master/user/edit/:id', checkAuth, (req, res) => {
+app.post('/master/user/edit/:id', checkAuth, async (req, res) => {
   if (req.session.user.role !== 'owner') return res.status(403).send('Akses Ditolak');
 
   const { id } = req.params;
   const { name, username, password, role } = req.body;
 
-  db.run("UPDATE users SET name = ?, username = ?, password = ?, role = ? WHERE id = ?", 
-    [name, username, password, role, id], (err) => {
-      res.redirect('/master');
+  try {
+    // 1. Jika password diawali $2b$, artinya password lama terenkripsi (tidak diubah user)
+    if (password.startsWith('$2b$')) {
+      db.run("UPDATE users SET name = ?, username = ?, role = ? WHERE id = ?", 
+        [name, username, role, id], (err) => {
+          res.redirect('/master');
+        }
+      );
+    } else {
+      // 2. Jika password baru diisi teks biasa, HASH dulu dengan bcrypt
+      const hash = await bcrypt.hash(password, 10);
+      db.run("UPDATE users SET name = ?, username = ?, password = ?, role = ? WHERE id = ?", 
+        [name, username, hash, role, id], (err) => {
+          res.redirect('/master');
+        }
+      );
     }
-  );
+  } catch (err) {
+    console.error(err);
+    res.redirect('/master');
+  }
 });
 
 // ------------------- JALANKAN SERVER -------------------
